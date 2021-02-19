@@ -1,6 +1,7 @@
 from dataloader import targetLearningDataloader
 import numpy.random as npr
 import matplotlib.pyplot as plt
+import os
 from learner import Learner
 import pickle
 import numpy as np
@@ -12,8 +13,8 @@ import tl_lyapunov as ly
 import time
 
 def main():
-    function_type = '2sine'
-    for trial in range(7,20):
+    function_type = '4sine'
+    for trial in range(20,30):
         trials = {}
         for idx in range(0, 1):
             a = time.perf_counter()
@@ -40,8 +41,9 @@ def main():
                     LEs_stats[i] = ly.LEs(epochs=i, feed_seq=feed_seq, is_test=True, tl_learner = tl_learner)
 
                 trials[seed] = {"seed": seed, "LEs_stats": LEs_stats}
-
-                pickle.dump(trials, open('../trials/{}/N_{}/{}_learner_N_{}_g_{:0.1f}_trial_{}.p'.format
+                if not os.path.exists('../RFORCE/{}/N_{}/'.format(function_type, N)):
+                    os.makedirs('../RFORCE/{}/N_{}/'.format(function_type, N))
+                pickle.dump(trials, open('../RFORCE/{}/N_{}/{}_learner_N_{}_g_{:0.1f}_trial_{}.p'.format
                                  (function_type, N, function_type, N, g, trial), 'wb'))
 
             b = time.perf_counter()
