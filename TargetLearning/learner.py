@@ -24,8 +24,8 @@ class Learner():
         # create sparse random matrix with specific probability distribution/random numbers.
         scale = 1 / np.sqrt(self.p * self.N)
         S = sparse.random(self.N, self.N, density=self.p, data_rvs=rvs) * self.g * scale
-        self.M = S.toarray()
-        # self.M, self.per, self.radius, self.theta = R.R_FORCEDistribution(N=self.N, g=self.g)
+        # self.M = S.toarray()
+        self.M, self.per, self.radius, self.theta = R.R_FORCEDistribution(N=self.N, g=self.g)
 
         self.training_stats = {}
         self.testing_stats = {}

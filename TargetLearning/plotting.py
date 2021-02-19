@@ -65,17 +65,18 @@ def plotting(trial, g, epochs, feed_seq, function_type, N,  test, repeat, load_m
 
 def main():
     g = 1.4
-    trial = 4
+    trial = 0
+    seed = 0
     N = 512
-    function_type = '2sine'
-    trials = pickle.load(open('../trials/{}/N_{}/{}_learner_N_{}_g_{}_trial_{}.p'.format(
-        function_type,N,function_type,N,g,trial ), 'rb'))
+    function_type = '4sine'
+    trials = pickle.load(open('../RFORCE/{}/N_{}/{}_learner_N_{}_g_{}_trial_{}.p'.format(
+        function_type,N,function_type,N,g,trial), 'rb'))
     plt.figure()
     for key in [0, 5, 10, 14]:
     # for key in trials[0]['LEs_stats'].keys():
     #     print()
-        x_axis = range(0, len(trials[trial]['LEs_stats'][key]['LEs']))
-        plt.scatter(x_axis, trials[trial]['LEs_stats'][key]['LEs'])
+        x_axis = range(0, len(trials[seed]['LEs_stats'][key]['LEs']))
+        plt.scatter(x_axis, trials[seed]['LEs_stats'][key]['LEs'])
         # print(trials[0]['LEs_stats'][key][LEs])
     # print(trials[0]['LEs_stats'][0])
     plt.legend(['0', '5', '10', '14'])

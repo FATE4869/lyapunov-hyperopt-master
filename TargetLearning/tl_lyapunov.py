@@ -63,23 +63,19 @@ def oneStepVarQR(J, Q):
                                               dim2=2)  # return positive r values and corresponding vectors
 
 
-def calc_LEs_an(*params, learner, k_LE=100000, rec_layer= 'rnn', kappa=10, diff=10, warmup=10, T_ons=1, dt = 0.1):
+def calc_LEs_an(h, wo, learner, k_LE=100000, rec_layer= 'rnn', kappa=10, diff=10, warmup=10, T_ons=1, dt = 0.1):
     device = torch.device('cuda')
 
-    bias = False
-    cells = False  # determine whether to track cell states (for LSTM)
-
-    x_in = Variable(params[0], requires_grad=False).to(device)
+    # x_in = Variable(x_in, requires_grad=False).to(device)
     # print("x_in:", x_in.shape)
 
-    h0 = Variable(params[1], requires_grad=False).to(device)
+    h = Variable(h, requires_grad=False).to(device)
     # print("h0:", h0.shape)
 
-    wo = Variable(params[2], requires_grad=False).to(device)
+    wo = Variable(wo, requires_grad=False).to(device)
 
-
-    num_layers, batch_size, hidden_size = h0.shape
-    _, feed_seq, input_size = x_in.shape
+    num_layers, batch_size, hidden_size, feed_seq = h.shape
+    # _, _, input_size = x_in.shape
 
     L = num_layers * hidden_size    # the max num of LEs
 
@@ -87,9 +83,6 @@ def calc_LEs_an(*params, learner, k_LE=100000, rec_layer= 'rnn', kappa=10, diff=
     Q = torch.reshape(torch.eye(L), (1, L, L)).repeat(batch_size, 1, 1).to(device) # Q = [batch_size, L, L]
     Q = Q[:, :, :k_LE]  # Choose how many exponents to track
 
-    ht = h0
-
-    # states = (ht,)  # make tuple for easier generalization
     rvals = torch.ones(batch_size, feed_seq, k_LE).to(device)  # storage
 
     # qvect = torch.zeros(batch_size, feed_seq, L, k_LE) #storage
@@ -105,15 +98,16 @@ def calc_LEs_an(*params, learner, k_LE=100000, rec_layer= 'rnn', kappa=10, diff=
 
     t_QR = t
     # for xt in x_in.transpose(0,1):
-    for xt in tqdm(x_in.transpose(0, 1)):
+    h = torch.squeeze(torch.squeeze(h,0).transpose(1,2))
+    for ht in tqdm(h):
         # print("t: ",t)
         if (t - t_QR) >= T_ons or t == 0 or t == feed_seq:
             QR = True
         else:
             QR = False
-        xt = torch.unsqueeze(xt, 1)  # select t-th element in the fed sequence
+        # xt = torch.unsqueeze(xt, 1)  # select t-th element in the fed sequence
 
-        states = ht
+        # states = ht
 
         if rec_layer == 'rnn':
             wf = torch.tensor(learner.wf).to(device)
@@ -122,10 +116,7 @@ def calc_LEs_an(*params, learner, k_LE=100000, rec_layer= 'rnn', kappa=10, diff=
             wf = torch.unsqueeze(wf, 0)
             M = torch.unsqueeze(M, 0)
             J = tl_jac(M, dt, wf, wo, ht)
-            # M, dt, wf, wo, rt
-            # J = rnn_jac(wf, M, ht, xt, bias=bias)
 
-        # _, states = oneStep(xt, *states, model=model)
         if QR:
             Q, r = oneStepVarQR(J, Q)
             t_QR = t
@@ -134,10 +125,7 @@ def calc_LEs_an(*params, learner, k_LE=100000, rec_layer= 'rnn', kappa=10, diff=
             Q = torch.matmul(torch.transpose(J, 1, 2), Q)
             r = torch.ones((batch_size, hidden_size))
 
-        ht = states
         rvals[:, t, :] = r
-        # qvect[:, t, :, :] = Q
-
         t = t + 1
     LEs = torch.sum(torch.log2(rvals.detach()), dim=1) / feed_seq
     #     print(torch.log2(rvals.detach()).shape)
@@ -326,16 +314,16 @@ def LEs(epochs, feed_seq, is_test=True, tl_learner = None):
     # print(dir(tl_learner))
 
     if is_test:
-        h0 = tl_learner.testing_stats[epochs]['hidden_states'][:, 0]
+        h = tl_learner.testing_stats[epochs]['hidden_states'][:, :feed_seq]
         x_in = tl_learner.testing_stats[epochs]['inputs'][:, :feed_seq]
         wo = tl_learner.wo_recording[:,epochs + 1]
 
-        h0 = torch.unsqueeze(torch.unsqueeze(torch.tensor(h0), 0), 0)  # h0 = [num hidden layer, batch size, hidden size]
-        x_in = torch.unsqueeze(torch.transpose(torch.tensor(x_in), 0, 1), 0)  # x_in = [batch_size, feed_seq, input_size]
+        h = torch.unsqueeze(torch.unsqueeze(torch.tensor(h), 0), 0)  # h0 = [num hidden layer, batch size, hidden size, feed_seq]
+        # x_in = torch.unsqueeze(torch.transpose(torch.tensor(x_in), 0, 1), 0)  # x_in = [batch_size, feed_seq, input_size]
         wo = torch.tensor(wo)
         # print(h0.size)
         # print(x_in.shape)
-        LEs, rvals = calc_LEs_an(x_in, h0, wo, learner=tl_learner)
+        LEs, rvals = calc_LEs_an(h, wo, learner=tl_learner)
         # print(LEs.shape)
 
         LE_mean, LE_std = LE_stats(LEs)

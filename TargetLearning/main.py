@@ -14,14 +14,14 @@ import time
 
 def main():
     function_type = '4sine'
-    for trial in range(20,30):
+    for trial in range(0, 10):
         trials = {}
         for idx in range(0, 1):
             a = time.perf_counter()
             g = 1.4 + 0.1 * idx
             for seed in range(0, 50):
                 print('trial = {}; seed={}'.format(trial, seed))
-                # npr.seed(seed=seed)
+                npr.seed(seed=seed)
 
                 training_epochs = 15
                 testing_epochs = 10
