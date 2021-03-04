@@ -92,9 +92,8 @@ def calc_LEs_an(h, wo, learner, k_LE=100000, rec_layer= 'rnn', kappa=10, diff=10
     #     print(Q.shape)
 
     T_pred = math.log2(kappa / diff)
-    #     T_ons = max(1, math.floor(T_pred))
-    #     print('Pred = {}, QR Interval: {}'.format(T_pred, T_ons))
-    #     print(ht[0])
+    T_ons = max(1, math.floor(T_pred))
+    print('Pred = {}, QR Interval: {}'.format(T_pred, T_ons))
 
     t_QR = t
     # for xt in x_in.transpose(0,1):
@@ -105,10 +104,6 @@ def calc_LEs_an(h, wo, learner, k_LE=100000, rec_layer= 'rnn', kappa=10, diff=10
             QR = True
         else:
             QR = False
-        # xt = torch.unsqueeze(xt, 1)  # select t-th element in the fed sequence
-
-        # states = ht
-
         if rec_layer == 'rnn':
             wf = torch.tensor(learner.wf).to(device)
             M = torch.tensor(learner.M).to(device)

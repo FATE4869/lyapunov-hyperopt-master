@@ -10,7 +10,7 @@ import scipy.linalg as la
 
 class Learner():
 
-    def __init__(self, dataloader, N, g, learn_every = 2, train=True):
+    def __init__(self, dataloader, N, g, learn_every = 2, train=True, isRFORCE=False):
         self.dataloader = dataloader
         self.N = N
         self.g = g
@@ -18,14 +18,16 @@ class Learner():
         self.learn_every = learn_every
         self.train = train
         self.p = 0.1
-
-        # specify probability distribution
-        rvs = stats.norm(loc=0, scale=1).rvs
-        # create sparse random matrix with specific probability distribution/random numbers.
-        scale = 1 / np.sqrt(self.p * self.N)
-        S = sparse.random(self.N, self.N, density=self.p, data_rvs=rvs) * self.g * scale
-        # self.M = S.toarray()
-        self.M, self.per, self.radius, self.theta = R.R_FORCEDistribution(N=self.N, g=self.g)
+        self.isRFORCE = isRFORCE
+        if self.isRFORCE:
+            self.M, self.per, self.radius, self.theta = R.R_FORCEDistribution(N=self.N, g=self.g)
+        else:
+            # specify probability distribution
+            rvs = stats.norm(loc=0, scale=1).rvs
+            # create sparse random matrix with specific probability distribution/random numbers.
+            scale = 1 / np.sqrt(self.p * self.N)
+            S = sparse.random(self.N, self.N, density=self.p, data_rvs=rvs) * self.g * scale
+            self.M = S.toarray()
 
         self.training_stats = {}
         self.testing_stats = {}
