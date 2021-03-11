@@ -12,22 +12,48 @@ from plotting import plotting
 import tl_lyapunov as ly
 import time
 
+def plotting_target(tl_learner):
+    val_loss = tl_learner.testing_stats[training_epochs - 1]['val_loss']
+    # Low Error
+    # if val_loss < 0.05:
+
+    # High Error
+    if val_loss > 0.5:
+        # Mid Error
+        # if val_loss> 0.15 and val_loss < 0.25:
+        plt.figure()
+        start_point = 1200 * 7
+        end_point = 1200 * 9
+        xrange = range(tl_learner.testing_stats[training_epochs - 1]['inputs'].size)
+
+        plt.plot(xrange[start_point:end_point], tl_learner.testing_stats[14]['inputs'][0, start_point:end_point],
+                 'g', linewidth=3)
+
+        plt.plot(xrange[start_point:end_point], tl_learner.dataloader.train_dataset[start_point:end_point],
+                 'r', linewidth=3)
+
+        plt.title("val loss: {}, seed: {}".format(val_loss, seed))
+        plt.show()
+        print("this")
+
+
+
 def main():
     function_type = 'random_4sine'
     isRFORCE = False
     if isRFORCE:
         distribution = 'RFORCE'
     else:
-        distribution = "trials"
+        distribution = "FORCE"
 
-    for trial in range(16, 17):
+    for trial in range(2, 5):
         trials = {}
-        for idx in range(4, 5):
+        for idx in range(2, 11):
             a = time.perf_counter()
-            g = 1.0 + 0.1 * idx
-            for seed in range(11, 13):
-                print('trial = {}; seed={}'.format(trial, seed))
-                npr.seed(seed=seed)
+            g = int((1.0 + 0.1 * idx) * 10)/ 10
+            for seed in range(0, 20):
+                print('g = {}, trial = {}; seed={}'.format(g, trial, seed))
+                # npr.seed(seed=seed)
 
                 training_epochs = 15
                 testing_epochs = 15
@@ -40,41 +66,17 @@ def main():
                 tl_learner = Learner(dataloader=tl_dataloader, N=N, g=g, train=train, isRFORCE=isRFORCE)
 
                 tl_learner.learn()
-                val_loss = tl_learner.testing_stats[training_epochs-1]['val_loss']
 
-                # Low Error
-                # if val_loss < 0.05:
+                LEs_stats = {}
+                for i in range(0, training_epochs):
 
-                # High Error
-                if val_loss >  0.5:
+                    LEs_stats[i] = ly.LEs(epochs=i, feed_seq=feed_seq, is_test=True, tl_learner = tl_learner)
 
-                # Mid Error
-                # if val_loss> 0.15 and val_loss < 0.25:
-                    plt.figure()
-                    start_point = 1200 * 7
-                    end_point = 1200 * 9
-                    xrange = range(tl_learner.testing_stats[training_epochs-1]['inputs'].size)
-
-                    plt.plot(xrange[start_point:end_point], tl_learner.testing_stats[14]['inputs'][0, start_point:end_point],
-                             'g', linewidth=3)
-
-                    plt.plot(xrange[start_point:end_point], tl_learner.dataloader.train_dataset[start_point:end_point],
-                             'r', linewidth=3)
-
-                    plt.title("val loss: {}, seed: {}".format(val_loss, seed))
-                    plt.show()
-                    print("this")
-
-                # LEs_stats = {}
-                # for i in range(0, training_epochs):
-                #
-                #     LEs_stats[i] = ly.LEs(epochs=i, feed_seq=feed_seq, is_test=True, tl_learner = tl_learner)
-                #
-                # trials[seed] = {"seed": seed, "LEs_stats": LEs_stats}
-                # if not os.path.exists('../{}/{}/N_{}/'.format(distribution, function_type, N)):
-                #     os.makedirs('../{}/{}/N_{}/'.format(distribution, function_type, N))
-                # pickle.dump(trials, open('../{}/{}/N_{}/{}_learner_N_{}_g_{:0.1f}_trial_{}.p'.format
-                #                  (distribution, function_type, N, function_type, N, g, trial), 'wb'))
+                trials[seed] = {"seed": seed, "LEs_stats": LEs_stats, "wo": tl_learner.wo_recording[:, -1]}
+                if not os.path.exists('../trials/{}/{}/N_{}/g_{}'.format(distribution, function_type, N, g)):
+                    os.makedirs('../trials/{}/{}/N_{}/g_{}'.format(distribution, function_type, N, g))
+                pickle.dump(trials, open('../trials/{}/{}/N_{}/g_{}/{}_learner_N_{}_g_{:0.1f}_trial_{}.p'.format
+                                 (distribution, function_type, N, g, function_type, N, g, trial), 'wb'))
 
             b = time.perf_counter()
             print("elapse time: ", b - a)

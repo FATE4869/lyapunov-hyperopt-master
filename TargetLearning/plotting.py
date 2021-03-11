@@ -3,6 +3,19 @@ import pickle
 import torch
 import numpy as np
 import tl_lyapunov as ly
+import random
+
+num_colors = 5
+gradient = np.linspace(1, 0.5, num_colors)
+cmap = plt.cm.get_cmap('brg')
+
+def load_val_losses(N, g, trial ,input_epoch, output_epoch, function_type, distribution):
+    trials = pickle.load(open('../trials/{}/{}/N_{}/g_{}/{}_learner_N_{}_g_{}_trial_{}.p'.format(
+        distribution, function_type, N, g, function_type, N, g, trial), 'rb'))
+    val_losses = []
+    for j in range(len(trials)):
+        val_losses.append(trials[j]['LEs_stats'][output_epoch]['val_loss'])
+    return val_losses
 
 def plotting(trial, g, epochs, feed_seq, function_type, N,  test, repeat, load_model, trained_model=True, tl_learner = None):
     LEs_recording = np.zeros([repeat, N])
@@ -63,40 +76,87 @@ def plotting(trial, g, epochs, feed_seq, function_type, N,  test, repeat, load_m
     plt.show()
     print(LEs_recording)
 
-def largestLEs(val_losses, largest_LEs, threshold=0.1):
+def random_ordering_val_losses_plot(val_losses_gs, num_colors):
 
-    bool_arr_bad = val_losses > threshold
-    bool_arr_good = val_losses <= threshold
-    indices_bad = np.where(bool_arr_bad)[0]
-    indices_good = np.where(bool_arr_good)[0]
-    print(len(indices_good), len(indices_bad))
-    ax0 = plt.subplot(1, 1, 1)
-    ax0.scatter(np.ones_like(val_losses[indices_bad]), largest_LEs[indices_bad], s=10, c='r', label="Bad performace", alpha=0.5)
-    ax0.scatter(np.ones_like(val_losses[indices_good]) * 1.1, largest_LEs[indices_good], c='g', s=10, label="Good performace", alpha=0.5)
-    ax0.axes.xaxis.set_ticks([1.0, 1.1])
-    ax0.axes.xaxis.set_ticklabels([])
-    #
-    ax0.axes.yaxis.set_ticks([-1, -.5, 0, .5, 1])
-    ax0.axes.yaxis.set_ticklabels([])
-    # # ax0.axes.xaxis.set_visible(False)
-    # # ax0.axes.yaxis.set_visible(False)
-    #
-    # # g_axis = np.ones_like(val_losses) * g
-    # # plt.scatter(g_axis, val_losses)
-    plt.xlim([0.95, 2])
-    plt.ylim([-1.05, 1.25])
+    random.shuffle(val_losses_gs)
+    threshold_range = [0, .1, .4, .6, .7, max(val_losses_gs)]
+    color_indices = []
+    counter = [0, 0, 0, 0, 0]
+    for val_loss in val_losses_gs:
+        for i in range(num_colors):
+            if val_loss < threshold_range[i + 1] and val_loss > threshold_range[i]:
+                color_indices.append(i)
+                # color_indices.append(1)
+                counter[i] += 1
+    print(len(color_indices))
+    print(counter)
+    rgbs = cmap(gradient[color_indices])
+    plt.scatter(range(len(color_indices)), np.ones_like(color_indices), c=rgbs, s=100, alpha=1.0)
+    # plt.scatter(range(len(color_indices)), color_indices, c=rgbs, s=100, alpha=0.2)
+    plt.xticks([0, 45], [])
+    plt.yticks([1], [])
     plt.show()
+def load_LEs_stat(N, g, trial ,input_epoch, output_epoch, function_type, distribution, loadWo=False):
 
-def main():
+    trials = pickle.load(open('../trials/{}/{}/N_{}/g_{}/{}_learner_N_{}_g_{}_trial_{}.p'.format(
+        distribution, function_type, N, g, function_type, N, g, trial), 'rb'))
+    LE_largests = []
+    LE_means = []
+    LE_stds = []
+    val_losses = []
+    wos = []
+    num_trials = len(trials)
+    # num_trials = 4
+    for j in range(num_trials):
+        LE_largests.append(max(trials[j]['LEs_stats'][input_epoch]['LEs']))
+        LE_means.append(trials[j]['LEs_stats'][input_epoch]['LE_mean'].item())
+        LE_stds.append(trials[j]['LEs_stats'][input_epoch]['LE_std'].item())
+        val_losses.append(trials[j]['LEs_stats'][output_epoch]['val_loss'])
+        if loadWo:
+            wos.append((trials[j]['wo']))
+    return LE_largests, LE_means, LE_stds, val_losses, wos
+def load_LE_stats_gs(N, gs, trial ,input_epoch, output_epoch, function_type, distribution):
+    LE_largests_gs = []
+    LE_means_gs = []
+    LE_stds_gs = []
+    val_losses_gs = []
+    wos_gs = []
+    for g in gs:
+        g = int(g * 10) / 10
+        LE_largests_g, LE_means_g, LE_stds_g, val_losses_g, wos = load_LEs_stat(N,
+                                                       g, trial,input_epoch, output_epoch, function_type, distribution, loadWo=True)
+        LE_largests_gs += LE_largests_g
+        LE_means_gs += LE_means_g
+        LE_stds_gs += LE_stds_g
+        val_losses_gs += val_losses_g
+        wos_gs += wos
+    return LE_largests_gs, LE_means_gs, LE_stds_gs, val_losses_gs, wos_gs
+
+def load_LE_stats_trials(N, gs, num_trials ,input_epoch, output_epoch, function_type, distribution):
+    LE_largests_trials = []
+    LE_means_trials = []
+    LE_stds_trials = []
+    val_losses_trials = []
+    wos_trials = []
+    for trial in range(num_trials):
+        LE_largests_trial, LE_means_trial, LE_stds_trial, val_losses_trial, wos_trial = load_LE_stats_gs(N, gs, trial, input_epoch,
+                                                                                   output_epoch, function_type,
+                                                                                   distribution)
+        LE_largests_trials += LE_largests_trial
+        LE_means_trials += LE_means_trial
+        LE_stds_trials += LE_stds_trial
+        val_losses_trials += val_losses_trial
+        wos_trials += wos_trial
+    return LE_largests_trials, LE_means_trials, LE_stds_trials, val_losses_trials, wos_trials
+
+def largestLEs(threshold=0.1):
     val_losses = None
     largest_LEs = None
-    for i in range(16):
-        # print(i)
-        # g = int((1.0 + 0.1 * i) * 10)/ 10
-        g = 1.4
-        # print(g)
-        trial = i
-        seed = 0
+    plt.figure()
+    num_trial = 16
+    g = 1.4
+    for trial in range(num_trial):
+        # print(trial)
         N = 512
         input_epoch = 5
         output_epoch = 14
@@ -104,8 +164,8 @@ def main():
         distribution = "FORCE"
         trials = pickle.load(open('../trials/{}/{}/N_{}/g_{}/{}_learner_N_{}_g_{}_trial_{}.p'.format(
             distribution, function_type,N,g, function_type,N,g,trial), 'rb'))
-
         # print(len(trials))
+
         for j in range(len(trials)):
             if val_losses is None:
                 val_losses = np.array(trials[j]['LEs_stats'][output_epoch]['val_loss'])
@@ -113,12 +173,124 @@ def main():
             else:
                 val_losses = np.append(val_losses, trials[j]['LEs_stats'][output_epoch]['val_loss'])
                 largest_LEs = np.append(largest_LEs, max(trials[j]['LEs_stats'][input_epoch]['LEs']))
-    # print("val_losses: ", val_losses)
-    # print("largest_LEs: ", largest_LEs)
-    # plt.scatter(val_losses, largest_LEs)
-    # plt.show()
-    largestLEs(val_losses, largest_LEs, threshold=0.2)
-    #
+
+    bool_arr_bad = val_losses > threshold
+    bool_arr_good = val_losses <= threshold
+    indices_bad = np.where(bool_arr_bad)[0]
+    indices_good = np.where(bool_arr_good)[0]
+    # print(len(indices_good), len(indices_bad))
+    ax0 = plt.subplot(1, 1, 1)
+    ax0.scatter(np.ones_like(val_losses[indices_bad]), largest_LEs[indices_bad], s=10, c='r', label="Bad performace", alpha=0.5)
+    ax0.scatter(np.ones_like(val_losses[indices_good]) * 1.1, largest_LEs[indices_good], c='g', s=10, label="Good performace", alpha=0.5)
+    ax0.axes.xaxis.set_ticks([1.0, 1.1])
+    ax0.axes.xaxis.set_ticklabels([])
+    ax0.axes.yaxis.set_ticks([-1, -.5, 0, .5, 1])
+    ax0.axes.yaxis.set_ticklabels([])
+
+    plt.xlim([0.95, 2])
+    plt.ylim([-1.05, 1.25])
+    plt.show()
+
+    num_bins = 50
+    plt.figure()
+    plt.hist(largest_LEs[indices_good],bins=num_bins, range=(-1.05, 1.25),color='g')
+    plt.hist(largest_LEs[indices_bad], bins=num_bins, range=(-1.05, 1.25), color='r')
+    plt.xticks([-1, -.5, 0, .5, 1], [])
+    plt.yticks([0, 10, 20, 30, 40, 50], [])
+    # plt.xticklabels([])
+    plt.show()
+def booleanVal():
+    val_losses = None
+    largest_LEs = None
+    plt.figure()
+    for i in range(11):
+        print(i)
+        g = int((1.0 + 0.1 * i) * 10)/ 10
+        val_losses_g = None
+        trial = 0
+        seed = 0
+        N = 512
+        input_epoch = 5
+        output_epoch = 14
+        function_type = 'random_4sine'
+        distribution = "FORCE"
+        trials = pickle.load(open('../trials/{}/{}/N_{}/{}_learner_N_{}_g_{}_trial_{}.p'.format(
+            distribution, function_type,N, function_type,N,g,trial), 'rb'))
+        print(len(trials))
+        for j in range(len(trials)):
+            if val_losses_g is None:
+                val_losses_g = np.array(trials[j]['LEs_stats'][output_epoch]['val_loss'])
+            else:
+                val_losses_g = np.append(val_losses_g, trials[j]['LEs_stats'][output_epoch]['val_loss'])
+        if g == 1.4:
+            plt.scatter(np.ones_like(val_losses) * g, val_losses, c='g')
+        else:
+            plt.scatter(np.ones_like(val_losses) * g, val_losses, c='k')
+    plt.xlim([0.95, 2.05])
+    plt.ylim([-0.05, 1.05])
+    plt.show()
+def pca_performance(X, targets, dim=2):
+    # if type(X) == "list":
+    X = torch.tensor(np.array(X))
+    U,S,V = torch.pca_lowrank(X)
+    low_rank = torch.matmul(X, V[:, :dim]).detach().numpy()
+    rgbs = cmap(gradient[targets])
+    fig = plt.figure()
+    if (dim==2):
+        plt.scatter(low_rank[:, 0], low_rank[:, 1], s=50, c=rgbs, alpha=0.5)
+        plt.xticks([-.5, 0, .5], [])
+        plt.yticks([-0.5, 0, 0.5],[])
+        plt.xlim([-.5, .5])
+        plt.ylim([-0.5, 0.5])
+    elif (dim==3):
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(low_rank[:, 0], low_rank[:, 1],
+                   low_rank[:, 2], s=6)
+    # plt.legend()
+    # plt.title("PCA")
+    plt.show()
+
+    pca_results = {"low_rank": low_rank, "targets": targets}
+    return pca_results
+
+def val_losses_classifier(val_losses, threshold_range=None):
+    # random.shuffle(val_losses_gs)
+    if threshold_range == None:
+        threshold_range = [0, .1, .4, .6, .7, max(val_losses)]
+        num_colors = 5
+    else:
+        num_colors = len(threshold_range) - 1
+    classes = []
+    counter = [0, 0, 0, 0, 0]
+    for val_loss in val_losses:
+        for i in range(num_colors):
+            if val_loss <= threshold_range[i + 1] and val_loss > threshold_range[i]:
+                classes.append(i)
+                # color_indices.append(1)
+                counter[i] += 1
+    print(len(classes))
+    print(counter)
+    return classes
+def main():
+    # booleanVal()
+    gs = np.linspace(1.1, 2., 11)
+    N = 512
+    input_epoch = 5
+    output_epoch = 14
+    num_trials = 2
+    function_type = 'random_4sine'
+    distribution = "FORCE"
+    LE_largests_gs, LE_means_gs, LE_stds_gs, val_losses_gs, wos_gs = load_LE_stats_trials(N, gs, num_trials ,input_epoch, output_epoch, function_type, distribution)
+    classes = val_losses_classifier(val_losses_gs)
+    # print(classes)
+    # random_ordering_val_losses_plot(val_losses_gs, num_colors)
+    pca_performance(wos_gs, classes)
+
+
+
+
+
+
     # bool_arr_bad = val_losses > threshold
     # bool_arr_good = val_losses <= threshold
     # indices_bad = np.where(bool_arr_bad)[0]

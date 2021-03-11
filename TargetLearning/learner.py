@@ -50,7 +50,7 @@ class Learner():
             wo, error_avg, ti = self.training(epoch, wo, ti)
             self.wo_recording[:, epoch + 1] = wo
             testing_loss = self.testing(epoch, wo)
-            print(testing_loss)
+            # print(testing_loss)
     def training(self, epoch, wo, ti):
         r = np.tanh(self.x)
         h_training_recording = np.zeros([self.N, self.dataloader.signal_length + 1])

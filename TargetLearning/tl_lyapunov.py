@@ -115,7 +115,6 @@ def calc_LEs_an(h, wo, learner, k_LE=100000, rec_layer= 'rnn', kappa=10, diff=10
         if QR:
             Q, r = oneStepVarQR(J, Q)
             t_QR = t
-
         else:
             Q = torch.matmul(torch.transpose(J, 1, 2), Q)
             r = torch.ones((batch_size, hidden_size))
