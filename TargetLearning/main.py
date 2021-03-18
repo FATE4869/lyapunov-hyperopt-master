@@ -46,9 +46,9 @@ def main():
     else:
         distribution = "FORCE"
 
-    for trial in range(2, 5):
+    for trial in range(6, 7):
         trials = {}
-        for idx in range(2, 11):
+        for idx in range(4, 11):
             a = time.perf_counter()
             g = int((1.0 + 0.1 * idx) * 10)/ 10
             for seed in range(0, 20):

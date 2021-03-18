@@ -238,10 +238,10 @@ def pca_performance(X, targets, dim=2):
     fig = plt.figure()
     if (dim==2):
         plt.scatter(low_rank[:, 0], low_rank[:, 1], s=50, c=rgbs, alpha=0.5)
-        plt.xticks([-.5, 0, .5], [])
-        plt.yticks([-0.5, 0, 0.5],[])
-        plt.xlim([-.5, .5])
-        plt.ylim([-0.5, 0.5])
+        plt.xticks([-.8, 0, .8], [])
+        plt.yticks([-1, 0, 1],[])
+        plt.xlim([-.8, .8])
+        plt.ylim([-1, 1])
     elif (dim==3):
         ax = fig.add_subplot(111, projection='3d')
         ax.scatter(low_rank[:, 0], low_rank[:, 1],
@@ -251,7 +251,39 @@ def pca_performance(X, targets, dim=2):
     plt.show()
 
     pca_results = {"low_rank": low_rank, "targets": targets}
+    pca_hist_stack(low_rank, targets, num_bins=50)
     return pca_results
+
+
+def pca_hist_stack(low_rank, targets, num_bins=50):
+
+
+    # threshold_range = [0, .1, .4, .6, .7]
+    # [max(targets), .8, .6, .4, .2]
+    # threshold_range = [0, .1, .2, .4, .6, max(targets)]
+    gradient = np.linspace(1, 0.5, num_colors)
+    cmap = plt.cm.get_cmap('brg')
+    # rgbs = cmap(gradient[color_indices])
+    # min_range = min(targets).item()
+    plt.figure()
+    targets = np.array(targets)
+    for i in range(max(targets) + 1):
+        bool_arr = targets >= i
+        indices_arr = np.where(bool_arr)[0]
+        points = low_rank[indices_arr, :]
+        print(len(points))
+        counts, bins = np.histogram(points[:, 0], bins=num_bins,
+                                    range=(min(low_rank[:, 0]), max(low_rank[:, 0])))
+        # else:
+        #     counts, _ = np.histogram(points[:, 0], bins=num_bins)
+        plt.hist(bins[:-1], bins, weights=counts, color=cmap(gradient[i]))
+
+    plt.xticks([-.8, 0, .8], [])
+    plt.xlim([-.8, .8])
+    plt.yticks([0, 250, 500], [])
+    plt.ylim([0, 500])
+    # plt.title("PC1 stacked hist")
+    plt.show()
 
 def val_losses_classifier(val_losses, threshold_range=None):
     # random.shuffle(val_losses_gs)
@@ -277,7 +309,7 @@ def main():
     N = 512
     input_epoch = 5
     output_epoch = 14
-    num_trials = 2
+    num_trials = 3
     function_type = 'random_4sine'
     distribution = "FORCE"
     LE_largests_gs, LE_means_gs, LE_stds_gs, val_losses_gs, wos_gs = load_LE_stats_trials(N, gs, num_trials ,input_epoch, output_epoch, function_type, distribution)
