@@ -3,13 +3,13 @@ import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 from dataloader import MNIST_dataloader
-from model import RNN
+from model import LSTM, GRU
 from tl_lyapunov import calc_LEs_an
 import pickle
 def main():
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+    model_type = "gru"
     # Hyper-parameters
     sequence_length = 28
     input_size = 28
@@ -19,17 +19,25 @@ def main():
     batch_size = 100
     num_epochs = 10
     learning_rate = 0.01
-
     num_trials = 100
+    a_s = [2]
+    # a_s = [0.1, 0.5, 1, 1.5, 2]
 
-    a_s = [0.1, 0.5, 1, 2, 5]
+    # just for testing
+    num_trials = 1
+    num_epochs = 5
+    a_s = [0.1]
+
     for a in a_s:
         trials = {}
         for num_trial in range(num_trials):
             print("a: ", a, "num_trial: ", num_trial)
-            hidden_size = 32
+            hidden_size = 8
             trial = {}
-            model = RNN(input_size, hidden_size, num_layers, num_classes, a, device).to(device)
+            if model_type == 'lstm':
+                model = LSTM(input_size, hidden_size, num_layers, num_classes, a, device).to(device)
+            elif model_type == 'gru':
+                model = GRU(input_size, hidden_size, num_layers, num_classes, a, device).to(device)
             # Loss and optimizer
             criterion = nn.CrossEntropyLoss()
             optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -54,9 +62,9 @@ def main():
                     loss.backward()
                     optimizer.step()
 
-                    # if (i + 1) % 300 == 0:
-                    #     print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                    #           .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
+                    if (i + 1) % 300 == 0:
+                        print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
+                              .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
 
                 # Test the model
                 model.eval()
@@ -70,19 +78,20 @@ def main():
 
                         h = torch.zeros(model.num_layers, images.size(0), model.hidden_size).to(model.device)
                         c = torch.zeros(model.num_layers, images.size(0), model.hidden_size).to(model.device)
-                        params = (images, (h, c))
-                        if i == 0:
-                            LEs, rvals = calc_LEs_an(*params, model=model)
+                        # params = (images, (h, c))
+                        # if i == 0:
+                        #     LEs, rvals = calc_LEs_an(*params, model=model)
 
                         loss = criterion(outputs, labels)
                         _, predicted = torch.max(outputs.data, 1)
                         total += labels.size(0)
                         correct += (predicted == labels).sum().item()
+                    if epoch == (num_epochs - 1):
+                        print('Epoch [{}/{}] Loss: {}, Test Accuracy: {} %'.format(epoch + 1, num_epochs, loss, 100 * correct / total))
+                # trial[epoch] = {"LEs": LEs, "val_loss": loss}
 
-                    print('Epoch [{}/{}] Loss: {}, Test Accuracy: {} %'.format(epoch + 1, num_epochs, loss, 100 * correct / total))
-                trial[epoch] = {"LEs": LEs, "val_loss": loss}
-            trials[num_trial] = trial
-        pickle.dump(trials, open('trials/lstm_{}_uni_{}.pickle'.format(hidden_size, a), 'wb'))
+            # trials[num_trial] = trial
+        # pickle.dump(trials, open('trials/lstm_{}_uni_{}.pickle'.format(hidden_size, a), 'wb'))
 
 
 if __name__ == "__main__":

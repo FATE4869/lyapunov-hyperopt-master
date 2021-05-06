@@ -42,7 +42,7 @@ def calc_Jac(*params, model):
     return J
 
 
-def oneStep(*params, model):
+def oneStep(*params, model, rec_layer='lstm'):
     # Params is a tuple including h, x, and c (if LSTM)
     l = len(params)
     if l < 2:
@@ -50,7 +50,10 @@ def oneStep(*params, model):
         return None
     elif l > 2:
         states = (params[1], params[2])
-        return model.lstm(params[0], states)
+        if rec_layer == 'lstm':
+            return model.lstm(params[0], states)
+        elif rec_layer == 'gru':
+            return model.gru(params[0], states)
     else:
         return model(*params)
 
@@ -110,10 +113,10 @@ def calc_LEs_an(*params, model, k_LE=100000, rec_layer='lstm', kappa=10, diff=10
         elif rec_layer == 'lstm':
             J = lstm_jac(model.lstm.all_weights, ht, ct, xt, bias=bias)
         elif rec_layer == 'gru':
-            J = gru_jac(model.rnn_layer.all_weights, ht, xt, bias=bias)
+            J = gru_jac(model.gru.all_weights, ht, xt, bias=bias)
         else:
             J = calc_Jac(xt, *states, model=model)
-        _, states = oneStep(xt, *states, model=model)
+        _, states = oneStep(xt, *states, model=model, rec_layer=rec_layer)
         if cells:
             (ht, ct) = states
         else:
@@ -122,7 +125,7 @@ def calc_LEs_an(*params, model, k_LE=100000, rec_layer='lstm', kappa=10, diff=10
     Q, _ = torch.qr(Q, some=True)
     #     print(Q.shape)
 
-    T_pred = math.log2(kappa / diff)
+    # T_pred = math.log2(kappa / diff)
     #     T_ons = max(1, math.floor(T_pred))
     #     print('Pred = {}, QR Interval: {}'.format(T_pred, T_ons))
     #     print(ht[0])
@@ -144,7 +147,7 @@ def calc_LEs_an(*params, model, k_LE=100000, rec_layer='lstm', kappa=10, diff=10
         elif rec_layer == 'lstm':
             J = lstm_jac(model.lstm.all_weights, ht, ct, xt, bias=bias)
         elif rec_layer == 'gru':
-            J = gru_jac(model.rnn_layer.all_weights, ht, xt, bias=bias)
+            J = gru_jac(model.gru.all_weights, ht, xt, bias=bias)
         else:
             J = calc_Jac(xt, *states, model=model)
 
@@ -310,7 +313,8 @@ def gru_jac(params_array, h, x, bias):
     h_in = h.transpose(1, 2).detach()
     x_in = [x.squeeze(dim=1).t()]
     if bias:
-        b = [b1 + b2 for (b1, b2) in zip(b_i, b_h)]
+        bi, bh = b_i, b_h
+        # b = [b1 + b2 for (b1, b2) in zip(b_i, b_h)]
     else:
         bi = [torch.zeros(W_i.shape[0], ).to(device) for W_i in W]
         bh = [torch.zeros(W_i.shape[0], ).to(device) for W_i in W]

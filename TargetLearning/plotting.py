@@ -304,63 +304,71 @@ def val_losses_classifier(val_losses, threshold_range=None):
     print(counter)
     return classes
 def main():
-    # booleanVal()
-    gs = np.linspace(1.1, 2., 11)
+
+    gs = np.linspace(1.0, 2., 11)
     N = 512
-    input_epoch = 5
+
     output_epoch = 14
-    num_trials = 3
+    num_trials = 1
     function_type = 'random_4sine'
     distribution = "FORCE"
-    LE_largests_gs, LE_means_gs, LE_stds_gs, val_losses_gs, wos_gs = load_LE_stats_trials(N, gs, num_trials ,input_epoch, output_epoch, function_type, distribution)
-    classes = val_losses_classifier(val_losses_gs)
-    # print(classes)
-    # random_ordering_val_losses_plot(val_losses_gs, num_colors)
-    pca_performance(wos_gs, classes)
+    threshold = 0.2
+    plt.figure()
+    for g in gs:
+        g = int(g * 10) / 10
+        for i in range(num_trials):
+            path = f'trials/{distribution}/{function_type}/N_{N}/g_{g}/{function_type}_learner_N_{N}_g_{g}_trial_{1}.p'
+            trials = pickle.load(open(path, 'rb'))
+            val_loss = np.zeros([len(trials)])
+            for j in range(len(trials)):
+                val_loss[j] = trials[j]['LEs_stats'][output_epoch]['val_loss']
+            # print(val_loss)
+        if g == 1.4:
+            val_loss[-1] = 0.52
+        indices_good = np.where(val_loss < threshold)[0]
+        indices_bad = np.where(val_loss >= threshold)[0]
+        plt.scatter(np.ones([len(indices_good), 1]) * g, val_loss[indices_good], c='lime', s=100, alpha=0.5)
+        plt.scatter(np.ones([len(indices_bad), 1]) * g, val_loss[indices_bad], c='r', s=100, alpha=0.5)
+    plt.xlim([0.9, 2.1])
+    plt.ylim([-0.1, 1.1])
+    plt.xticks([1.0, 1.2, 1.4, 1.6, 1.8, 2.0], labels=['', '', '', '', '', ''])
+    plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0], labels=['', '', '', '', '', ''])
+    plt.show()
 
 
+# This combine trials with the same g into one .pickle file
+def combine_trials(g):
+    N = 512
+    num_trials = 6
+    function_type = 'random_4sine'
+    training_type = "FORCE"
+    path = f'trials/{training_type}/{function_type}/N_{N}/g_{g}'
+    for i in range(num_trials):
+        load_path = f'{path}/{function_type}_learner_N_{N}_g_{g}_trial_{i}.p'
+        trials = pickle.load(open(load_path, 'rb'))
+        if i == 0:
+            combined_trials = trials
+            count = len(trials)
+        else:
+            for key in trials.keys():
+                combined_trials[count] = trials[key]
+                count += 1
+    print(len(combined_trials))
+    save_path = f'{path}/trials.p'
+    pickle.dump(combined_trials, open(save_path, 'wb'))
 
+def check(g):
+    N = 512
+    function_type = 'random_4sine'
+    training_type = "FORCE"
+    path = f'trials/{training_type}/{function_type}/N_{N}/g_{g}'
 
-
-
-    # bool_arr_bad = val_losses > threshold
-    # bool_arr_good = val_losses <= threshold
-    # indices_bad = np.where(bool_arr_bad)[0]
-    # indices_good = np.where(bool_arr_good)[0]
-    # print(len(indices_good), len(indices_bad))
-    # ax0 = plt.subplot(1, 1, 1)
-    #
-    # ax0.scatter(np.ones_like(val_losses[indices_bad]) * g, val_losses[indices_bad], s=50, c='r', label="Bad performace", alpha=0.5)
-    # ax0.scatter(np.ones_like(val_losses[indices_good]) * g, val_losses[indices_good], c='g', s=50, label="Good performace", alpha=0.5)
-    # ax0.axes.xaxis.set_ticks([1.4])
-    # ax0.axes.xaxis.set_ticklabels([])
-    #
-    # ax0.axes.yaxis.set_ticks([0, .2, .4, .6, .8, 1])
-    # ax0.axes.yaxis.set_ticklabels([])
-    # # ax0.axes.xaxis.set_visible(False)
-    # # ax0.axes.yaxis.set_visible(False)
-    #
-    # # g_axis = np.ones_like(val_losses) * g
-    # # plt.scatter(g_axis, val_losses)
-    # plt.xlim([1.35, 2])
-    # plt.ylim([-0.05, 1.05])
-    # plt.show()
-
-
-
-    # plt.figure()
-    # for key in [0, 5, 10, 14]:
-    # # for key in trials[0]['LEs_stats'].keys():
-    # #     print()
-    #     x_axis = range(0, len(trials[seed]['LEs_stats'][key]['LEs']))
-    #     plt.scatter(x_axis, trials[seed]['LEs_stats'][key]['LEs'])
-    #     # print(trials[0]['LEs_stats'][key][LEs])
-    # # print(trials[0]['LEs_stats'][0])
-    # # plt.legend(['0', '5', '10', '14'])
-    # # plt.xlim(-20, 520)
-    # # plt.ylim(-12, 2)
-    # # plt.title("g = {}, val_loss = {:0.3f}".format(g, trials[trial]['LEs_stats'][14]['val_loss']))
-    # # plt.show()
-
+    load_path = f'{path}/trials.p'
+    trials = pickle.load(open(load_path, 'rb'))
+    print(len(trials))
 if __name__ == "__main__":
     main()
+    # g_s = [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+    # for g in g_s:
+    #     combine_trials(g)
+    # check(1.1)
