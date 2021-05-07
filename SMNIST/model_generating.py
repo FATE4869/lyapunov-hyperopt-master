@@ -21,7 +21,7 @@ def main(trial_num):
     sequence_length = 28
     input_size = 28
     num_layers = 1
-    hidden_size = 32
+    hidden_size = 128
     num_classes = 10
     batch_size = 100
     num_epochs = 20
@@ -115,7 +115,7 @@ def main(trial_num):
         pickle.dump(trials, open('trials/{}/models/{}_{}_trials_{}.pickle'.format(model_type, model_type, hidden_size, trial_num), 'wb'))
 
 if __name__ == "__main__":
-    for trial_num in range(2, 6):
+    for trial_num in range(0,1):
         main(trial_num)
 
 

@@ -16,14 +16,14 @@ from tl_lyapunov import calc_LEs_an
 import copy
 
 device = torch.device('cuda')
-def cal_LEs_from_trained_model(N, a=None, trial_num=None):
+def cal_LEs_from_trained_model(N, a=None, trial_num=None, input_epoch=None):
     model_type = 'lstm'
     if a is None:
         trials = pickle.load(open(f'trials/{model_type}/models/{model_type}_{N}_trials_{trial_num}.pickle','rb'))
     else:
         trials = pickle.load(open(f'trials/{model_type}/models/{model_type}_{N}_uni_{a}.pickle', 'rb'))
     num_trials = len(trials)
-    num_epochs = len(trials[0])-1
+    num_epochs = len(trials[0])-1 # minus one because one of the keys is 'a'
     batch_size = 100
     sequence_length = 28
     input_size = 28
@@ -32,13 +32,14 @@ def cal_LEs_from_trained_model(N, a=None, trial_num=None):
     num_classes = 10
     num_layers = 1
     LEs_stats = {}
-
+    if input_epoch is None:
+        input_epoch = num_epochs - 1 # the last epoch
     for i in range(num_trials):
-        trial = trials[i][num_epochs - 1]
+    # for i in range(1):
+        trial = trials[i][input_epoch]
         model, record_acc, record_loss, init_param = trial['model'], trial['accuracy'],\
                                                      trial['loss'], trial['model'].a
         # Test the model
-
         model.eval()
         with torch.no_grad():
             correct = 0
@@ -66,14 +67,16 @@ def cal_LEs_from_trained_model(N, a=None, trial_num=None):
                 total_loss += loss * labels.size(0)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
+
         LEs_stats[i] = {}
         LEs_stats[i]['LEs'] = LEs_avg
         LEs_stats[i]['accuracy'] = 100 * correct / total
         LEs_stats[i]['loss'] = total_loss / total
+        LEs_stats[i]['init_param'] = init_param
 
-        print(f'Loss: {total_loss / total}, Test Accuracy: {100 * correct / total}. a: {init_param},'
-              f' record_loss: {record_loss}, record_acc: {record_acc}')
-    pickle.dump(LEs_stats, open(f'trials/{model_type}/LEs/{model_type}_{N}_trials_{trial_num}.pickle','wb'))
+        print(f'input_epoch: {input_epoch}, trial_idx:{i}. Init param: {init_param:.4f} Loss: {total_loss / total:.4f}, '
+              f'Test Accuracy: {100 * correct / total}. record_loss: {record_loss:.4f}, record_acc: {record_acc}')
+    pickle.dump(LEs_stats, open(f'trials/{model_type}/LEs/e_{input_epoch + 1}/{model_type}_{N}_trials_{trial_num}.pickle', 'wb'))
 
 def main():
     # for gru models
@@ -84,13 +87,12 @@ def main():
     #         cal_LEs_from_trained_model(N, a)
 
     # for lstm models
-    N_s = [64]
-    # a_s = [2.0, 2.2, 2.5, 2.7, 3.0]
-
-    for trial_num in range(2, 7):
-        # for a in a_s:
-        N = 64
-        cal_LEs_from_trained_model(N, trial_num=trial_num)
+    # for input_epoch in range(1):
+    #     for trial_num in range(6, 7):
+    #         N = 64
+    #         cal_LEs_from_trained_model(N, trial_num=trial_num, input_epoch=input_epoch)
+    trials = pickle.load(open(f'trials/lstm/LEs/e_2/lstm_64_trials_0.pickle','rb'))
+    print(len(trials))
 
 if __name__ == "__main__":
     main()
