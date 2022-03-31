@@ -62,9 +62,6 @@ def read_sn3_pascalvincent_tensor(path, strict=True):
     assert parsed.shape[0] == np.prod(s) or not strict
     return torch.from_numpy(parsed.astype(m[2], copy=False)).view(*s)
 
-
-
-
 def read_image_file(path):
     with open(path, 'rb') as f:
         x = read_sn3_pascalvincent_tensor(f, strict=False)
@@ -75,8 +72,8 @@ def read_image_file(path):
 
 def main():
     # MNIST dataset
-    raw_folder = "../Dataset/MNIST/raw/"
-    processed_folder = "../Dataset/MNIST/processed/"
+    raw_folder = "../../../dataset/MNIST/raw/"
+    processed_folder = "../../../dataset/MNIST/processed/"
     training_file = 'training.pt'
     test_file = 'test.pt'
     training_set = (

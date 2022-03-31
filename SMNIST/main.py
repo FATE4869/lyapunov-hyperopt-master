@@ -1,3 +1,5 @@
+import os.path
+import os
 import torch
 import torch.nn as nn
 import torchvision
@@ -6,10 +8,11 @@ from dataloader import MNIST_dataloader
 from model import LSTM, GRU
 from tl_lyapunov import calc_LEs_an
 import pickle
+import numpy as np
 def main():
     # Device configuration
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model_type = "gru"
+    model_type = "lstm"
     # Hyper-parameters
     sequence_length = 28
     input_size = 28
@@ -21,15 +24,13 @@ def main():
     learning_rate = 0.01
     num_trials = 100
     a_s = [2]
-    # a_s = [0.1, 0.5, 1, 1.5, 2]
+    trials = {}
 
     # just for testing
     num_trials = 1
     num_epochs = 5
-    a_s = [0.1]
-
+    a_s = np.random.uniform(0.1, 2, [2])
     for a in a_s:
-        trials = {}
         for num_trial in range(num_trials):
             print("a: ", a, "num_trial: ", num_trial)
             hidden_size = 8
@@ -66,6 +67,7 @@ def main():
                         print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                               .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
 
+
                 # Test the model
                 model.eval()
                 with torch.no_grad():
@@ -76,8 +78,9 @@ def main():
                         labels = labels.to(device)
                         outputs, _ = model(images)
 
-                        h = torch.zeros(model.num_layers, images.size(0), model.hidden_size).to(model.device)
-                        c = torch.zeros(model.num_layers, images.size(0), model.hidden_size).to(model.device)
+                        # calculate LEs
+                        # h = torch.zeros(model.num_layers, images.size(0), model.hidden_size).to(model.device)
+                        # c = torch.zeros(model.num_layers, images.size(0), model.hidden_size).to(model.device)
                         # params = (images, (h, c))
                         # if i == 0:
                         #     LEs, rvals = calc_LEs_an(*params, model=model)
@@ -88,10 +91,11 @@ def main():
                         correct += (predicted == labels).sum().item()
                     if epoch == (num_epochs - 1):
                         print('Epoch [{}/{}] Loss: {}, Test Accuracy: {} %'.format(epoch + 1, num_epochs, loss, 100 * correct / total))
-                # trial[epoch] = {"LEs": LEs, "val_loss": loss}
-
-            # trials[num_trial] = trial
-        # pickle.dump(trials, open('trials/lstm_{}_uni_{}.pickle'.format(hidden_size, a), 'wb'))
+                trial[epoch] = {'model': model, 'accuracy': 100 * correct / total,
+                                'loss': loss}
+            trials[num_trial] = trial
+        saved_path = f'../../../dataset/trials/{model_type}/models/'
+        pickle.dump(trials, open(f'{saved_path}/lstm_{hidden_size}_trials_0.pickle', 'wb'))
 
 
 if __name__ == "__main__":

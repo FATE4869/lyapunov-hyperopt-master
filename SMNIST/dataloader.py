@@ -8,13 +8,13 @@ class MNIST_dataloader():
         # MNIST dataset
         self.batch_size = batch_size
         if train:
-            self.dataset = torchvision.datasets.MNIST(root='../Dataset/',
+            self.dataset = torchvision.datasets.MNIST(root='../../../dataset/',
                                                    train=True,
                                                    transform=transforms.ToTensor(),
                                                    download=False)
         else:
 
-            self.dataset = torchvision.datasets.MNIST(root='../Dataset/',
+            self.dataset = torchvision.datasets.MNIST(root='../../../dataset/',
                                                   train=False,
                                                   transform=transforms.ToTensor())
         self.dataloader = torch.utils.data.DataLoader(dataset=self.dataset, batch_size=self.batch_size,

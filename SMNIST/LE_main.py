@@ -7,6 +7,7 @@ after each epoch of training is saved. You can just load the model to perform th
 
 lstm model:
 '''
+import os.path
 import pickle
 import torch
 from dataloader import MNIST_dataloader
@@ -19,7 +20,7 @@ device = torch.device('cuda')
 def cal_LEs_from_trained_model(N, a=None, trial_num=None, input_epoch=None):
     model_type = 'lstm'
     if a is None:
-        trials = pickle.load(open(f'trials/{model_type}/models/{model_type}_{N}_trials_{trial_num}.pickle','rb'))
+        trials = pickle.load(open(f'../../../dataset/trials/{model_type}/models/{model_type}_{N}_trials_{trial_num}.pickle','rb'))
     else:
         trials = pickle.load(open(f'trials/{model_type}/models/{model_type}_{N}_uni_{a}.pickle', 'rb'))
     num_trials = len(trials)
@@ -76,23 +77,20 @@ def cal_LEs_from_trained_model(N, a=None, trial_num=None, input_epoch=None):
 
         print(f'input_epoch: {input_epoch}, trial_idx:{i}. Init param: {init_param:.4f} Loss: {total_loss / total:.4f}, '
               f'Test Accuracy: {100 * correct / total}. record_loss: {record_loss:.4f}, record_acc: {record_acc}')
-    pickle.dump(LEs_stats, open(f'trials/{model_type}/LEs/e_{input_epoch + 1}/{model_type}_{N}_trials_{trial_num}.pickle', 'wb'))
+    saved_path = f'../../../dataset/trials/{model_type}/LEs/e_{input_epoch + 1}/'
+    if not os.path.exists(saved_path):
+        os.mkdir(saved_path)
+    pickle.dump(LEs_stats, open(f'{saved_path}/{model_type}_{N}_trials_{trial_num}.pickle', 'wb'))
 
 def main():
-    # for gru models
-    # N_s = [64]
-    # a_s = [2.0, 2.2, 2.5, 2.7, 3.0]
-    # for N in N_s:
-    #     for a in a_s:
-    #         cal_LEs_from_trained_model(N, a)
-
     # for lstm models
-    # for input_epoch in range(1):
-    #     for trial_num in range(6, 7):
-    #         N = 64
-    #         cal_LEs_from_trained_model(N, trial_num=trial_num, input_epoch=input_epoch)
-    trials = pickle.load(open(f'trials/lstm/LEs/e_2/lstm_64_trials_0.pickle','rb'))
-    print(len(trials))
+    for input_epoch in range(1):
+        for trial_num in range(1):
+            N = 8
+            cal_LEs_from_trained_model(N, trial_num=trial_num, input_epoch=input_epoch)
+
+    # trials = pickle.load(open(f'../../../dataset/trials/lstm/models/lstm_8_trials_0.pickle','rb'))
+    # print(len(trials))
 
 if __name__ == "__main__":
     main()
