@@ -51,6 +51,7 @@ def main():
     else:
         distribution = "FORCE"
     g_s = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+    g_s = [1.4]
     for trial in range(10, 11):
         trials = {}
         for i, g in enumerate(g_s):
@@ -66,15 +67,15 @@ def main():
                 tl_learner.learn()
 
                 LEs_stats = {}
-                # for i in range(0, training_epochs):
-                #
-                #     LEs_stats[i] = ly.LEs(epochs=i, feed_seq=feed_seq, is_test=True, tl_learner = tl_learner)
+                for i in range(0, training_epochs):
 
-                # trials[seed] = {"seed": seed, "LEs_stats": LEs_stats, "wo": tl_learner.wo_recording[:, -1]}
-                # if not os.path.exists('../trials/{}/{}/N_{}/g_{}'.format(distribution, function_type, N, g)):
-                #     os.makedirs('../trials/{}/{}/N_{}/g_{}'.format(distribution, function_type, N, g))
-                # pickle.dump(trials, open('../trials/{}/{}/N_{}/g_{}/{}_learner_N_{}_g_{:0.1f}_trial_{}.p'.format
-                #                  (distribution, function_type, N, g, function_type, N, g, trial), 'wb'))
+                    LEs_stats[i] = ly.LEs(epochs=i, feed_seq=feed_seq, is_test=True, tl_learner = tl_learner)
+
+                trials[seed] = {"seed": seed, "LEs_stats": LEs_stats, "wo": tl_learner.wo_recording[:, -1]}
+                saved_path = f'./../../dataset/trials/{distribution}/{function_type}/N_{N}/g_{g}'
+                if not os.path.exists(saved_path):
+                    os.makedirs(saved_path)
+                pickle.dump(trials, open(f'{saved_path}/{function_type}_learner_N_{N}_g_{g:0.1f}_trial_{trial}.p', 'wb'))
 
             b = time.perf_counter()
             print("elapse time: ", b - a)

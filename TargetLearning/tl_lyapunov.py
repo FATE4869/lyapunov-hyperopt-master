@@ -308,9 +308,10 @@ def LEs(epochs, feed_seq, is_test=True, tl_learner = None):
     # print(dir(tl_learner))
 
     if is_test:
+        # h = tl_learner.testing_outputs[epochs]['hidden_states'][:, :feed_seq]
         h = tl_learner.testing_stats[epochs]['hidden_states'][:, :feed_seq]
         x_in = tl_learner.testing_stats[epochs]['inputs'][:, :feed_seq]
-        wo = tl_learner.wo_recording[:,epochs + 1]
+        wo = tl_learner.wo_recording[:,epochs]
 
         h = torch.unsqueeze(torch.unsqueeze(torch.tensor(h), 0), 0)  # h0 = [num hidden layer, batch size, hidden size, feed_seq]
         # x_in = torch.unsqueeze(torch.transpose(torch.tensor(x_in), 0, 1), 0)  # x_in = [batch_size, feed_seq, input_size]

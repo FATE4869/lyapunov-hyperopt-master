@@ -61,6 +61,7 @@ class Learner:
         self.wo_recording = np.zeros([self.N, self.dataloader.training_epochs])
         self.wf = np.random.uniform(-1, 1, [self.N, 1])
         self.ti = 0
+        self.testing_stats = {}
         self.training_outputs = np.zeros([len(self.dataloader.train_dataset), ])
         self.testing_outputs = np.zeros([len(self.dataloader.test_dataset), self.dataloader.training_epochs])
 
@@ -108,13 +109,21 @@ class Learner:
         x = self.x
         z = self.z
         testing_length = self.dataloader.testing_epochs * self.dataloader.signal_length
+        self.testing_stats[epoch] = {}
+        # save the first 1000 hidden states and inputs
+        self.testing_stats[epoch]['hidden_states']= np.zeros([x.shape[0], 1000])
+        self.testing_stats[epoch]['inputs'] = np.zeros([1, 1000])
         for idx in range(testing_length):
             x = (1 - self.dt) * x + np.dot(self.M, r * self.dt) + self.wf * (z * self.dt)
             r = np.tanh(x)
             z = np.dot(wo, r)
             self.testing_outputs[idx, epoch] = z
+            if idx < 1000:
+                self.testing_stats[epoch]['hidden_states'][:, idx] = np.squeeze(x)
+                self.testing_stats[epoch]['inputs'][:, idx] = np.squeeze(z)
         error_avg = np.sum(
             np.absolute(self.dataloader.test_dataset - self.testing_outputs[:, epoch])) / testing_length
+        self.testing_stats[epoch]['val_loss'] = error_avg
         if display:
             print("Testing error: ", error_avg)
 
